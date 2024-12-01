@@ -1,5 +1,7 @@
 streamlit
 pandas
 plotly
-python-dotenv
-xlsxwriter>=3.1.0
+unidecode
+pycountry
+openpyxl
+xlsxwriter
