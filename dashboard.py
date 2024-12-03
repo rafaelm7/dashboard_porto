@@ -144,6 +144,55 @@ if 'plotly_selected_data' not in st.session_state:
 st.set_page_config(page_title="Dashboard Comércio Exterior", layout="wide", initial_sidebar_state="expanded")
 st.title("Dashboard de Análise de Comércio Exterior")
 
+# Inicializar o estado do modal se não existir
+if 'show_modal' not in st.session_state:
+    st.session_state.show_modal = False
+if 'show_data_treatment' not in st.session_state:
+    st.session_state.show_data_treatment = False
+
+# Adicionar botões no canto superior direito
+with st.container():
+    col1, col2, col3 = st.columns([5, 1, 1])
+    with col2:
+        if st.button("Tratamento de Dados"):
+            st.session_state.show_data_treatment = not st.session_state.show_data_treatment
+            st.session_state.show_modal = False
+    with col3:
+        if st.button("Sobre Nós"):
+            st.session_state.show_modal = not st.session_state.show_modal
+            st.session_state.show_data_treatment = False
+
+    # Mostrar o modal de Sobre Nós apenas se show_modal for True
+    if st.session_state.show_modal:
+        with col1:
+            st.info("""
+            ### Projeto A3
+            
+            Apresentado ao curso de Sistemas de Informação, UNIFACS, como requisito da UC - Análise de Dados e Big Data.
+            
+            **Professor:**  
+            Eduardo Sidney da Silva Xavier
+            
+            **Alunos:**  
+            - Rafael Cordeiro Magalhães - 1272019188
+            - Priscila Simas Santos - 12722123651
+            - Nathalia Lima de Lima - 12722210839
+            - Douglas Dauto Bastos - 12722133147
+            """)
+    
+    # Mostrar o modal de Tratamento de Dados apenas se show_data_treatment for True
+    if st.session_state.show_data_treatment:
+        with col1:
+            st.info("""
+            ### Tratamento de Dados
+            
+            Os dados foram coletados da COMEX STAT.  
+            Link da pesquisa filtrada na comexstat: [ComexStat](https://comexstat.mdic.gov.br/pt/geral/115613)
+            
+            Após exportar os dados no formato CSV, tipo de exibição: VERTICAL.  
+            Os dados são tratados e convertidos para um banco SQLite através de um script em Python que pode ser consultado no link: [TratamentoDB](https://github.com/rafaelm7/TratamentoDB)
+            """)
+
 # Caminho do banco de dados relativo ao diretório do script
 DB_PATH = Path(__file__).parent / "comercio_exterior.sqlite"
 
