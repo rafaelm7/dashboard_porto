@@ -176,6 +176,18 @@ except Exception as e:
 # Criar o mapeamento de cores uma única vez
 MAPA_CORES_PRODUTOS = criar_mapa_cores_produtos(sorted(df['Desc_SH6'].unique()))
 
+# Antes dos filtros, adicionar um container para armazenar os filtros selecionados
+if 'filtros_ativos' not in st.session_state:
+    st.session_state.filtros_ativos = {
+        'Ano': [],
+        'Fluxo': [],
+        'Países': [],
+        'UF': [],
+        'URF': [],
+        'Desc_Secao': [],
+        'Desc_SH6': []
+    }
+
 # Sidebar para filtros
 st.sidebar.header("Filtros")
 
@@ -186,59 +198,87 @@ with col1_side:
     anos_selecionados = st.multiselect(
         "Ano",
         options=sorted(df['Ano'].unique()),
-        default=[]
+        default=st.session_state.filtros_ativos['Ano']
     )
 
 with col2_side:
     fluxos_selecionados = st.multiselect(
         "Fluxo",
         options=sorted(df['Fluxo'].unique()),
-        default=[]
+        default=st.session_state.filtros_ativos['Fluxo']
     )
 
 paises_selecionados = st.sidebar.multiselect(
     "Países",
     options=sorted(df['Países'].unique()),
-    default=[]
+    default=st.session_state.filtros_ativos['Países']
 )
 
 ufs_selecionadas = st.sidebar.multiselect(
     "UF do Produto",
     options=sorted(df['UF'].unique()),
-    default=[]
+    default=st.session_state.filtros_ativos['UF']
 )
 
-# Novo filtro URF
 urf_selecionadas = st.sidebar.multiselect(
     "URF",
     options=sorted(df['URF'].unique()),
-    default=[]
+    default=st.session_state.filtros_ativos['URF']
 )
 
 secoes_selecionadas = st.sidebar.multiselect(
     "Seção",
     options=sorted(df['Desc_Secao'].unique()),
-    default=[]
+    default=st.session_state.filtros_ativos['Desc_Secao']
 )
 
-# Filtro para Desc_SH6
 sh6_selecionados = st.sidebar.multiselect(
     "Produto (SH6)",
     options=sorted(df['Desc_SH6'].unique()),
-    default=[]
+    default=st.session_state.filtros_ativos['Desc_SH6']
 )
 
-# Aplicando filtros
-filtros = {
-    'Ano': anos_selecionados,
-    'Fluxo': fluxos_selecionados,
-    'Países': paises_selecionados,
-    'UF': ufs_selecionadas,
-    'URF': urf_selecionadas,
-    'Desc_Secao': secoes_selecionadas,
-    'Desc_SH6': sh6_selecionados
-}
+# Botão para aplicar filtros
+if st.sidebar.button('Aplicar Filtros', type='primary'):
+    # Atualizar filtros ativos
+    st.session_state.filtros_ativos = {
+        'Ano': anos_selecionados,
+        'Fluxo': fluxos_selecionados,
+        'Países': paises_selecionados,
+        'UF': ufs_selecionadas,
+        'URF': urf_selecionadas,
+        'Desc_Secao': secoes_selecionadas,
+        'Desc_SH6': sh6_selecionados
+    }
+    # Forçar rerun para atualizar a visualização
+    st.rerun()
+
+# Botão para limpar filtros
+if st.sidebar.button('Limpar Filtros'):
+    # Resetar filtros ativos
+    st.session_state.filtros_ativos = {
+        'Ano': [],
+        'Fluxo': [],
+        'Países': [],
+        'UF': [],
+        'URF': [],
+        'Desc_Secao': [],
+        'Desc_SH6': []
+    }
+    # Forçar rerun para atualizar a visualização
+    st.rerun()
+
+# Aplicar filtros usando os valores armazenados em session_state
+filtros = st.session_state.filtros_ativos
 df_filtrado = aplicar_filtros(df, filtros)
+
+# Mostrar filtros ativos
+if any(filtros.values()):
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### Filtros Ativos")
+    for campo, valores in filtros.items():
+        if valores:
+            st.sidebar.markdown(f"**{campo}:** {', '.join(map(str, valores))}")
 
 # Métricas principais
 st.subheader("Métricas Principais")
@@ -1296,4 +1336,3 @@ if st.button("Download dos dados filtrados (Excel)"):
         file_name="comercio_exterior_filtrado.xlsx",
         mime="application/vnd.ms-excel"
     )
-
