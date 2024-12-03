@@ -11,6 +11,55 @@ from unidecode import unidecode
 import streamlit.components.v1 as components
 import json
 
+@st.cache_data(ttl=3600)  # Cache por 1 hora
+def criar_mapa_cores_produtos(produtos):
+    """
+    Cria um mapeamento fixo de cores para todos os produtos,
+    garantindo que cada produto tenha uma cor única.
+    
+    Args:
+        produtos (list): Lista de produtos únicos
+        
+    Returns:
+        dict: Dicionário com produtos e suas cores correspondentes
+    """
+    # Combinar paletas de cores mais eficientemente
+    paletas_base = (
+        px.colors.qualitative.Set3 +
+        px.colors.qualitative.Pastel +
+        px.colors.qualitative.Safe +
+        px.colors.qualitative.Plotly +
+        px.colors.qualitative.D3
+    )
+    
+    n_cores_necessarias = len(produtos)
+    
+    # Se as paletas base são suficientes, usar diretamente
+    if len(paletas_base) >= n_cores_necessarias:
+        cores_finais = paletas_base[:n_cores_necessarias]
+    else:
+        # Gerar cores adicionais de forma mais eficiente
+        cores_adicionais = []
+        for i in range(n_cores_necessarias - len(paletas_base)):
+            h = (i * 137.508) % 360  # Número áureo para distribuição
+            s = 0.7 + (i % 3) * 0.1  # Saturação entre 70% e 90%
+            l = 0.45 + (i % 5) * 0.05  # Luminosidade entre 45% e 65%
+            
+            # Converter HSL para RGB e depois para hex
+            import colorsys
+            rgb = colorsys.hls_to_rgb(h/360, l, s)
+            cor_hex = '#{:02x}{:02x}{:02x}'.format(
+                int(rgb[0]*255),
+                int(rgb[1]*255),
+                int(rgb[2]*255)
+            )
+            cores_adicionais.append(cor_hex)
+        
+        cores_finais = paletas_base + cores_adicionais
+    
+    # Criar o mapeamento
+    return dict(zip(produtos, cores_finais))
+
 def aplicar_filtros(df, filtros):
     """
     Aplica múltiplos filtros ao DataFrame de forma otimizada.
@@ -123,6 +172,9 @@ try:
 except Exception as e:
     st.error(f"Erro ao carregar o banco de dados: {e}")
     st.stop()
+
+# Criar o mapeamento de cores uma única vez
+MAPA_CORES_PRODUTOS = criar_mapa_cores_produtos(sorted(df['Desc_SH6'].unique()))
 
 # Sidebar para filtros
 st.sidebar.header("Filtros")
@@ -706,9 +758,6 @@ with tab2:
     # Criar o gráfico
     fig_urf_stacked = go.Figure()
     
-    # Criar uma paleta de cores personalizada
-    colors = px.colors.qualitative.Set3 + px.colors.qualitative.Pastel + px.colors.qualitative.Safe
-    
     # Adicionar uma barra para cada produto
     produtos_unicos_urf = df_urf_plot['Desc_SH6'].unique()
     
@@ -729,7 +778,7 @@ with tab2:
             orientation='h',
             hovertext=hover_text,
             hoverinfo='text',
-            marker_color=colors[i % len(colors)]
+            marker_color=MAPA_CORES_PRODUTOS[produto]  # Usar a cor fixa do mapeamento
         ))
     
     # Atualizar o layout
@@ -1144,10 +1193,6 @@ with tab3:
     # Criar o gráfico
     fig_stacked = go.Figure()
     
-    # Criar uma paleta de cores personalizada com cores distintas
-    import plotly.express as px
-    colors = px.colors.qualitative.Set3 + px.colors.qualitative.Pastel + px.colors.qualitative.Safe
-    
     # Adicionar uma barra para cada produto
     produtos_unicos = df_plot['Desc_SH6'].unique()
     
@@ -1168,7 +1213,7 @@ with tab3:
             orientation='h',
             hovertext=hover_text,
             hoverinfo='text',
-            marker_color=colors[i % len(colors)]
+            marker_color=MAPA_CORES_PRODUTOS[produto]  # Usar a cor fixa do mapeamento
         ))
     
     # Atualizar o layout
@@ -1251,20 +1296,4 @@ if st.button("Download dos dados filtrados (Excel)"):
         file_name="comercio_exterior_filtrado.xlsx",
         mime="application/vnd.ms-excel"
     )
-def aplicar_filtros(df, filtros):
-    """
-    Aplica múltiplos filtros ao DataFrame de forma otimizada.
-    
-    Args:
-        df (pd.DataFrame): DataFrame a ser filtrado
-        filtros (dict): Dicionário com colunas e valores para filtrar
-        
-    Returns:
-        pd.DataFrame: DataFrame filtrado
-    """
-    mask = pd.Series(True, index=df.index)
-    for coluna, valores in filtros.items():
-        if valores:  # Só aplica o filtro se houver valores selecionados
-            mask &= df[coluna].isin(valores)
-    return df[mask]
 
